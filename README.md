@@ -4,59 +4,20 @@ Simple mouse game made in C++
 
 ## Description
 
-An in-depth paragraph about your project and overview of use.
-
-## Getting Started
+This game has you, a mouse (White Square) collect cheese balls (Yellow Circles) while avoiding the cat (Purple Square) that is chasing you around the maze.
+Your objective is to collect as many cheese balls as you can and get to the Exit (Green Square) and press E to end the game.
+The game is currently very early WIP and needs to be run in Visual Studio. Game score is shown in the console.
 
 ### Dependencies
 
-* Describe any prerequisites, libraries, OS version, etc., needed before installing program.
-* ex. Windows 10
-
-### Installing
-
-* How/where to download your program
-* Any modifications needed to be made to files/folders
-
-### Executing program
-
-* How to run the program
-* Step-by-step bullets
-```
-code blocks for commands
-```
-
-## Help
-
-Any advise for common problems or issues.
-```
-command to run if program contains helper info
-```
+Project was built in Visual Studio using C++ and using the SFML library
 
 ## Authors
 
-Contributors names and contact info
-
-ex. Dominique Pizzie  
-ex. [@DomPizzie](https://twitter.com/dompizzie)
+Harmeet Singh
 
 ## Version History
 
-* 0.2
-    * Various bug fixes and optimizations
-    * See [commit change]() or See [release history]()
 * 0.1
-    * Initial Release
+    * Finished the build, there are some issues such as clipping through walls for the cat. I plan to in the future remake the full game with new knowledge of C++ and SFML
 
-## License
-
-This project is licensed under the [NAME HERE] License - see the LICENSE.md file for details
-
-## Acknowledgments
-
-Inspiration, code snippets, etc.
-* [awesome-readme](https://github.com/matiassingers/awesome-readme)
-* [PurpleBooth](https://gist.github.com/PurpleBooth/109311bb0361f32d87a2)
-* [dbader](https://github.com/dbader/readme-template)
-* [zenorocha](https://gist.github.com/zenorocha/4526327)
-* [fvcproductions](https://gist.github.com/fvcproductions/1bfc2d4aecb01a834b46)
