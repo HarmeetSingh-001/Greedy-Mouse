@@ -8,6 +8,16 @@ struct Player
     sf::RectangleShape body{ { 25.f, 25.f } };
     float speed = 200.f;
     int cheeseCollected = 0;
+    // check for if player manually exited or was caught
+    bool survived;
+
+};
+
+struct Cat 
+{
+    sf::RectangleShape body{ { 25.f, 25.f } };
+    // timer used to have cat stop searching
+    float freezeTimer = 0.f;
 };
 
 // utilize game state to determine which screen to display
@@ -18,11 +28,6 @@ enum GameState
 };
 GameState state = PLAYING;
 
-// global check for if player manually exited or was caught
-bool playerSurvived;
-
-// timer used to have cat stop searching
-float catFreezeTimer = 0.f;
 
 // map layout utilized to construct walls and cheese balls
 std::vector<std::string> mazeMap =
@@ -70,7 +75,7 @@ int manhattanDistance(int firstX, int firstY, int secondX, int secondY) {
 }
 
 // helper function for moving the cat to the next position
-void catMovement(int catX, int catY, int goalX, int goalY, sf::RectangleShape& cat, float deltaTime) {
+void catMovement(int catX, int catY, int goalX, int goalY, Cat& cat, float deltaTime) {
     // one of these should be 0 as we only move in one direction and the other should be positive or negative
     int distX = goalX - catX;
     int distY = goalY - catY;
@@ -80,29 +85,29 @@ void catMovement(int catX, int catY, int goalX, int goalY, sf::RectangleShape& c
     {
         if (distY > 0) 
         {
-            cat.move({ 0.f, catSpeed * deltaTime });
+            cat.body.move({ 0.f, catSpeed * deltaTime });
         }
         else 
         {
-            cat.move({ 0.f, -catSpeed * deltaTime });
+            cat.body.move({ 0.f, -catSpeed * deltaTime });
         }
     }
     else if (distY == 0) 
     {
         if (distX > 0)
         {
-            cat.move({ catSpeed * deltaTime, 0.f});
+            cat.body.move({ catSpeed * deltaTime, 0.f});
         }
         else
         {
-            cat.move({ -catSpeed * deltaTime, 0.f });
+            cat.body.move({ -catSpeed * deltaTime, 0.f });
         }
     }
 }
 
 // helper function to find a path from the cat to the player
 // this is a BFS algorithm copied and altered from online
-void nextMove(int catX, int catY, int playerX, int playerY, int grid[32][32], sf::RectangleShape& cat, float deltaTime) {
+void nextMove(int catX, int catY, int playerX, int playerY, int grid[32][32], Cat& cat, float deltaTime) {
 
     // setup distance for grid cells
     int distance[32][32];
@@ -156,18 +161,18 @@ void nextMove(int catX, int catY, int playerX, int playerY, int grid[32][32], sf
 
 
 // behavior for the cat
-void catBehavior(Player& player, sf::RectangleShape& cat, int grid[32][32], float deltaTime)
+void catBehavior(Player& player, Cat& cat, int grid[32][32], float deltaTime)
 {
 
-    if (catFreezeTimer <= 0.f) 
+    if (cat.freezeTimer <= 0.f) 
     {
         sf::Vector2 playerPosition = player.body.getPosition();
-        sf::Vector2 catPosition = cat.getPosition();
+        sf::Vector2 catPosition = cat.body.getPosition();
 
         // call nextMove() using converted position values to align with the grid
         nextMove(int(catPosition.x / 25.f), int(catPosition.y / 25.f), int(playerPosition.x / 25.f), int(playerPosition.y / 25.f), grid, cat, deltaTime);
 
-        if (cat.getGlobalBounds().findIntersection(player.body.getGlobalBounds()))
+        if (cat.body.getGlobalBounds().findIntersection(player.body.getGlobalBounds()))
             state = GAMEOVER;
 
     }    
@@ -176,7 +181,7 @@ void catBehavior(Player& player, sf::RectangleShape& cat, int grid[32][32], floa
 
 // helper function for tracking player movement and player interaction with the level
 // returns score to keep it updated
-void playerInteraction(float deltaTime, Player& player, std::vector<sf::RectangleShape>& walls, std::vector<sf::CircleShape>& cheeseBalls, sf::RectangleShape exit)
+void playerInteraction(float deltaTime, Player& player, Cat& cat, std::vector<sf::RectangleShape>& walls, std::vector<sf::CircleShape>& cheeseBalls, sf::RectangleShape exit)
 {
     // store players position before moving
     sf::Vector2f playerLastPosition = player.body.getPosition();
@@ -209,7 +214,7 @@ void playerInteraction(float deltaTime, Player& player, std::vector<sf::Rectangl
         if (playerBounds.findIntersection(cheeseBalls[i].getGlobalBounds())) {
             cheeseBalls.erase(cheeseBalls.begin() + i);
             player.cheeseCollected += 1;
-            catFreezeTimer = 0.25;
+            cat.freezeTimer = 0.25;
             
         }
     }
@@ -221,7 +226,7 @@ void playerInteraction(float deltaTime, Player& player, std::vector<sf::Rectangl
         // if E is then also pressed, terminate the game
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::E)) 
         {
-            playerSurvived = true;
+            player.survived = true;
             state = GAMEOVER;
         }
     }
@@ -229,12 +234,12 @@ void playerInteraction(float deltaTime, Player& player, std::vector<sf::Rectangl
 }
 
 // helper function for updating window with new changes
-void updateWindow(sf::RenderWindow& window, Player& player, sf::RectangleShape& cat, std::vector<sf::RectangleShape>& walls, std::vector<sf::CircleShape>& cheeseBalls, sf::RectangleShape exit)
+void updateWindow(sf::RenderWindow& window, Player& player, Cat& cat, std::vector<sf::RectangleShape>& walls, std::vector<sf::CircleShape>& cheeseBalls, sf::RectangleShape exit)
 {
     window.clear();
     window.draw(exit);
     window.draw(player.body);
-    window.draw(cat);
+    window.draw(cat.body);
 
     for (const auto& wall : walls)
     {
@@ -313,9 +318,9 @@ int main()
     
 
     // Create cat
-    sf::RectangleShape cat({ 25.f, 25.f });
-    cat.setFillColor(sf::Color::Magenta);
-    cat.setPosition({ 400.f, 400.f });
+    Cat cat;
+    cat.body.setFillColor(sf::Color::Magenta);
+    cat.body.setPosition({ 400.f, 400.f });
 
     // Create grid used for the cat's chase logic
     int grid[32][32];
@@ -372,11 +377,11 @@ int main()
             float deltaTime = deltaTimeClock.restart().asSeconds();
 
             // if the cat is frozen, decrease timer
-            if (catFreezeTimer > 0.f) {
-                catFreezeTimer -= deltaTime;
+            if (cat.freezeTimer > 0.f) {
+                cat.freezeTimer -= deltaTime;
             }
 
-            playerInteraction(deltaTime, player, walls, cheeseBalls, exit);
+            playerInteraction(deltaTime, player,cat, walls, cheeseBalls, exit);
             catBehavior(player, cat, grid, deltaTime);
             updateWindow(window, player, cat, walls, cheeseBalls, exit);
         }
@@ -392,7 +397,7 @@ int main()
             std::cout << "GAME OVER \n" << std::endl;
 
             // player survived
-            if (playerSurvived) {
+            if (player.survived) {
                 std::cout << "You escaped! \n" << std::endl;
                 std::cout << "Your final score is: " << int(finalScore) << std::endl;
             }
