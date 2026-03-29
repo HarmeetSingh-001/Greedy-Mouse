@@ -2,6 +2,14 @@
 #include <iostream>
 #include <queue>
 
+// game object for player to store all player attributes
+struct Player
+{
+    sf::RectangleShape body{ { 25.f, 25.f } };
+    float speed = 200.f;
+    int cheeseCollected = 0;
+};
+
 // utilize game state to determine which screen to display
 enum GameState
 {
@@ -148,54 +156,51 @@ void nextMove(int catX, int catY, int playerX, int playerY, int grid[32][32], sf
 
 
 // behavior for the cat
-void catBehavior(sf::RectangleShape& player, sf::RectangleShape& cat, int grid[32][32], float deltaTime)
+void catBehavior(Player& player, sf::RectangleShape& cat, int grid[32][32], float deltaTime)
 {
 
     if (catFreezeTimer <= 0.f) 
     {
-        sf::Vector2 playerPosition = player.getPosition();
+        sf::Vector2 playerPosition = player.body.getPosition();
         sf::Vector2 catPosition = cat.getPosition();
 
         // call nextMove() using converted position values to align with the grid
         nextMove(int(catPosition.x / 25.f), int(catPosition.y / 25.f), int(playerPosition.x / 25.f), int(playerPosition.y / 25.f), grid, cat, deltaTime);
 
-        if (cat.getGlobalBounds().findIntersection(player.getGlobalBounds()))
+        if (cat.getGlobalBounds().findIntersection(player.body.getGlobalBounds()))
             state = GAMEOVER;
 
-    }
-
-    
-    
+    }    
     
 }
 
 // helper function for tracking player movement and player interaction with the level
 // returns score to keep it updated
-int playerInteraction(float deltaTime, float playerSpeed, sf::RectangleShape& player, std::vector<sf::RectangleShape>& walls, std::vector<sf::CircleShape>& cheeseBalls, int cheeseCollected, sf::RectangleShape exit)
+void playerInteraction(float deltaTime, Player& player, std::vector<sf::RectangleShape>& walls, std::vector<sf::CircleShape>& cheeseBalls, sf::RectangleShape exit)
 {
     // store players position before moving
-    sf::Vector2f playerLastPosition = player.getPosition();
+    sf::Vector2f playerLastPosition = player.body.getPosition();
 
     // basic player controls
     // using else if to force player to commit to a certain direction, no diagonal movement
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W))
-        player.move({ 0.f, -playerSpeed * deltaTime });
+        player.body.move({ 0.f, -player.speed * deltaTime });
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S))
-        player.move({ 0.f, playerSpeed * deltaTime });
+        player.body.move({ 0.f, player.speed * deltaTime });
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A))
-        player.move({ -playerSpeed * deltaTime, 0.f });
+        player.body.move({ -player.speed * deltaTime, 0.f });
     else if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D))
-        player.move({ playerSpeed * deltaTime, 0.f });
+        player.body.move({ player.speed * deltaTime, 0.f });
 
     // extracting playerBounds as to not have to store it each iteration of walls
-    sf::FloatRect playerBounds = player.getGlobalBounds();
+    sf::FloatRect playerBounds = player.body.getGlobalBounds();
     
 
     // player collision detection
     for (const auto& wall : walls) 
     {
         if (playerBounds.findIntersection(wall.getGlobalBounds()))
-            player.setPosition(playerLastPosition);
+            player.body.setPosition(playerLastPosition);
     }
 
     // player pick up detection
@@ -203,7 +208,7 @@ int playerInteraction(float deltaTime, float playerSpeed, sf::RectangleShape& pl
     {
         if (playerBounds.findIntersection(cheeseBalls[i].getGlobalBounds())) {
             cheeseBalls.erase(cheeseBalls.begin() + i);
-            cheeseCollected += 1;
+            player.cheeseCollected += 1;
             catFreezeTimer = 0.25;
             
         }
@@ -221,18 +226,14 @@ int playerInteraction(float deltaTime, float playerSpeed, sf::RectangleShape& pl
         }
     }
 
-    return cheeseCollected;
-
-    
-
 }
 
 // helper function for updating window with new changes
-void updateWindow(sf::RenderWindow& window, sf::RectangleShape& player, sf::RectangleShape& cat, std::vector<sf::RectangleShape>& walls, std::vector<sf::CircleShape>& cheeseBalls, sf::RectangleShape exit)
+void updateWindow(sf::RenderWindow& window, Player& player, sf::RectangleShape& cat, std::vector<sf::RectangleShape>& walls, std::vector<sf::CircleShape>& cheeseBalls, sf::RectangleShape exit)
 {
     window.clear();
     window.draw(exit);
-    window.draw(player);
+    window.draw(player.body);
     window.draw(cat);
 
     for (const auto& wall : walls)
@@ -306,10 +307,10 @@ int main()
     sf::RenderWindow window(sf::VideoMode(sf::Vector2u(800, 800)), "Greedy Mouse");
     
     // Create player
-    sf::RectangleShape player({ 25.f, 25.f });
-    player.setFillColor(sf::Color::White);
-    player.setPosition({ 25.f, 25.f });
-    float playerSpeed = 200.f;
+    Player player;
+    player.body.setFillColor(sf::Color::White);
+    player.body.setPosition({ 25.f, 25.f });
+    
 
     // Create cat
     sf::RectangleShape cat({ 25.f, 25.f });
@@ -352,8 +353,7 @@ int main()
     // set up clock for total elapsedTime
     sf::Clock clock;
 
-    // set up score tracking
-    int cheeseCollected = 0;
+    
 
     // game loop
     while (window.isOpen()) 
@@ -376,7 +376,7 @@ int main()
                 catFreezeTimer -= deltaTime;
             }
 
-            cheeseCollected = playerInteraction(deltaTime, playerSpeed, player, walls, cheeseBalls, cheeseCollected, exit);
+            playerInteraction(deltaTime, player, walls, cheeseBalls, exit);
             catBehavior(player, cat, grid, deltaTime);
             updateWindow(window, player, cat, walls, cheeseBalls, exit);
         }
@@ -387,7 +387,7 @@ int main()
             window.close();
 
             // calculate final score
-            float finalScore = (cheeseCollected * 10000) / clock.getElapsedTime().asSeconds();
+            float finalScore = (player.cheeseCollected * 10000) / clock.getElapsedTime().asSeconds();
 
             std::cout << "GAME OVER \n" << std::endl;
 
